@@ -10,7 +10,6 @@ typedef struct {
         unsigned char           *data;  // the pixels, stored as 1D array
 } PGM;
 
-PGM     *pgm_alloc(int r, int c);
 void     pgm_free(PGM *pgm);
 PGM     *pgm_read(const char *file_name);
 void      pgm_write(PGM *img, const char *file);
