@@ -15,4 +15,6 @@ void     pgm_free(PGM *pgm);
 PGM     *pgm_read(char *file_name);
 void     pgm_write(PGM *img, const char *file);
 PGM     *pgm_conv(PGM *img, FLTR* filter);
+void     pgm_normalize(PGM *img);
+PGM     *contour_img(PGM* x, PGM* y);
 #endif

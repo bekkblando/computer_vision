@@ -1,4 +1,6 @@
 #include "filter.h"
+#include <stdio.h>
+#include <stdlib.h> 
 
 FLTR  *make_filter(int filter_type){
     FLTR *filter = new FLTR();
@@ -15,4 +17,9 @@ FLTR  *make_filter(int filter_type){
     }
     filter->conv_type = filter_type;
     return(filter);
+}
+
+void free_filter(FLTR * filter){
+    free(filter->filter);
+    free(filter);
 }
