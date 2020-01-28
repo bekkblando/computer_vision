@@ -28,28 +28,34 @@ PGM *pgm_read(char *file_name){
     fscanf(file, "%i %i", &row, &column);
 
     fscanf(file, "%i", &maxColor);
-    PGM *image = (PGM*)malloc(sizeof(PGM));
+    PGM *image = new PGM();
 
     // Get the pixels
-    unsigned char* pixels;
+    double* pixels;
     // A single whitespace - usually a newline
     fgetc(file);
-    // Read in as unsigned chars if under 256 1 unsigned char if over 2
-    if(maxColor < 256){
-        pixels = (unsigned char*)malloc(row*column*sizeof(unsigned char));
-        fread(pixels, row, column, file);
-    }else{
-        pixels = (unsigned char*)malloc(row*column*2*sizeof(unsigned char));
-        fread(pixels, 2*row, column, file);
-    }
+    // Read in as doubles if under 256 1 double if over 2
+    pixels = new double[row*column];
+
+    // Note: Modeled after given assignment 1, the loading in I was using before loaded a block of data
+    // which wouldn't work for this project
+    unsigned char temp;
+    for(int i=0; i < row; i++) {
+        for(int j=0; j < column; j++) {
+          if( (fread(&temp, sizeof(unsigned char), 1, file) < 1) || feof(file) )
+            cout << "Error loading file\n";
+          pixels[i*column + j] = (double)temp/(double)maxColor;
+        }
+      }
 
     image->name = file_name;
     image->magic = buff;
     image->cols = column;
     image->rows = row;
     image->maxc = maxColor;
-    image->magic = buff;
     image->data = pixels;
+
+    fclose(file);
 
     return(image);
 }
@@ -67,20 +73,22 @@ void pgm_write(PGM *img, const char *file){
     // Write the row and column
     fprintf(pgm, "%i\n", img->maxc);
 
-    // for(int i = 0; i < img->rows; i++)
-    //     printf("Test: %c\n", img->data[i]);
+    unsigned char* pixels = new unsigned char[(img->rows) * (img->cols)];
+    for(int i = 0; i < img->cols * img->rows; i++)
+        pixels[i] = (unsigned char)(img->data[i] * (double)255);
 
     // Write the data pixels, row, column, file
-    fwrite(img->data, img->rows, img->cols, pgm);
+    fwrite(pixels, img->rows, img->cols, pgm);
+    delete[] pixels;
     fclose(pgm);
 }
 
 void pgm_free(PGM* pgm){
-    free(pgm->data);
-    free(pgm);
+    if(pgm->data)
+        delete[] pgm->data;
 }
 
-unsigned char* createOpMem(unsigned char* data, int row, int col, int index){
+double* createOpMem(double* data, int row, int col, int index){
     // I really didn't want to write out these checks. Had to make a few changes to
     // https://github.com/petermlm/SobelFilter/blob/master/src/sobel.c
     int top = index-col < 0;
@@ -88,7 +96,7 @@ unsigned char* createOpMem(unsigned char* data, int row, int col, int index){
     int left = index % col == 0;
     int right = (index+1) % col == 0;
 
-    unsigned char* op_mem = new unsigned char[8];
+    double* op_mem = new double[8];
     op_mem[0] = !top && !left     ? data[index+col-1] : 0;
     op_mem[1] = !top              ? data[index+col]   : 0;
     op_mem[2] = !top && !right    ? data[index+col+1] : 0;
@@ -103,27 +111,30 @@ unsigned char* createOpMem(unsigned char* data, int row, int col, int index){
     return(op_mem);
 }
 
-unsigned char conv_x(unsigned char* data, int col, int row, int index, FLTR *filter){
-    unsigned char* op_mem = createOpMem(data, row, col, index);
+double conv_x(double* data, int col, int row, int index, FLTR *filter){
+    double* op_mem = createOpMem(data, row, col, index);
     float result = op_mem[0]*filter->filter[0] +  op_mem[3]*filter->filter[1] +  op_mem[6]*filter->filter[2] - 
             op_mem[2]*filter->filter[0] -  op_mem[5]*filter->filter[1] -  op_mem[8]*filter->filter[2];
-    free(op_mem);
+    delete(op_mem);
     return(result);
 }
 
-unsigned char conv_y(unsigned char* data, int col, int row, int index, FLTR *filter){
-    unsigned char* op_mem = createOpMem(data, row, col, index);
-    unsigned char result = op_mem[0]*filter->filter[0] +  op_mem[1]*filter->filter[1] +  op_mem[2]*filter->filter[2] - 
+double conv_y(double* data, int col, int row, int index, FLTR *filter){
+    double* op_mem = createOpMem(data, row, col, index);
+    double result = op_mem[0]*filter->filter[0] +  op_mem[1]*filter->filter[1] +  op_mem[2]*filter->filter[2] - 
             op_mem[6]*filter->filter[0] -  op_mem[7]*filter->filter[1] -  op_mem[8]*filter->filter[2];
-    free(op_mem);
+    delete(op_mem);
     return(result);
 }
 
 PGM *pgm_conv(PGM *img, FLTR *filter){
     int row = img->rows, col = img->cols;
-    unsigned char result;
+    double result;
     PGM *filtered = new PGM();
-    filtered->data = (unsigned char*)malloc(row*col*sizeof(unsigned char));
+    filtered->name = nullptr;
+    filtered->magic = new char[3];
+    strcpy(filtered->magic,"P5");
+    filtered->data = new double[row*col];
     filtered->rows = row;
     filtered->cols = col;
     filtered->maxc = img->maxc;
@@ -135,7 +146,7 @@ PGM *pgm_conv(PGM *img, FLTR *filter){
 }
 
 void pgm_normalize(PGM *img){
-    unsigned char min = img->data[0], max = img->data[0];
+    double min = img->data[0], max = img->data[0];
     for(int i = 0; i < (img->rows * img->cols); i++){
         if(img->data[i] < min)
             min = img->data[i];
@@ -144,20 +155,19 @@ void pgm_normalize(PGM *img){
     }
 
     for(int i = 0; i < (img->rows * img->cols); i++){
-        img->data[i] = (((img->data[i] - min)*(img->maxc))/(max - min));
+        img->data[i] = (((img->data[i] - min))/(max - min));
     }
 }
 
 PGM* contour_img(PGM *x, PGM *y){
     int row = x->rows, col = x->cols;
-    unsigned char result;
     PGM *contour = new PGM();
-    contour->data = (unsigned char*)malloc(row*col*sizeof(unsigned char));
+    contour->data = new double[row*col];
     contour->rows = row;
     contour->cols = col;
     contour->maxc = x->maxc;
     for(int i = 0; i < (row*col); i++){
-        contour->data[i] = sqrt(pow(x->data[i], 2) + pow(y->data[i], 2));
+        contour->data[i] = abs(x->data[i]) + abs(y->data[i]);
     }
     return(contour);
 }

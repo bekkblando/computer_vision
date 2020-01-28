@@ -17,7 +17,7 @@ filter.o
 
 all: main
 
-main: main.o main.cpp
+main: pgm.o filter.o main.o main.cpp 
 	$(CC) $(CFLAGS) $(INCLUDE) -o $@ $@.o $(OBJECTS) $(LDFLAGS) $(LDLIBS)
 
 main.o: main.cpp

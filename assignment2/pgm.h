@@ -8,7 +8,7 @@ typedef struct {
         int             rows;   // height
         int             maxc;   // max color (usually 255)
         char            *magic; // magic number (expect 'P5')
-        unsigned char           *data;  // the pixels, stored as 1D array
+        double           *data;  // the pixels, stored as 1D array
 } PGM;
 
 void     pgm_free(PGM *pgm);
