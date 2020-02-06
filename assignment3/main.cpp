@@ -9,7 +9,7 @@ int main(int argc, char **argv){
   // allocte image of given size
   gimg = pgm_read("mandrill.pgm");
 
-  pgm_dwt2D(gimg, 1);
+  pgm_disc_wave_2d(gimg, 0);
   pgm_normalize(gimg);
   pgm_write(gimg, "test.pgm");
 

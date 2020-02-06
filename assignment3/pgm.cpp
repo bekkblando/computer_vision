@@ -172,31 +172,40 @@ PGM* contour_img(PGM *x, PGM *y){
     return(contour);
 }
 
-void dwt1d(double* data, int length, int levels){
+void disc_wave_1d(double* data, int length, int levels, int stepSize){
     double s = sqrt(2.0);
-    int k = pow(2, ((int)(floor(log2(length)))));
+    int i1 = 0, i2 = 0;
+    int k = pow(2, ((int)(floor(log2(length))))), stepCount = 0;
     double* temp = new double[length];
-    for(int l = 0; l <= levels; l++){
+    for(int level = 0; level <= levels; level++){
         k = k/2;
+        stepCount = 0;
         for(int i = 0; i < k; i++){
-            temp[i] = (data[i*2] + data[i*2 + 1])/s;
-            temp[i + k] = (data[i*2] - data[i*2 + 1])/s;
+            if(stepSize){
+                if(i%stepSize == 0 && i > stepSize){
+                    stepCount++;
+                }
+                i1 = (((i)%stepSize)*((stepSize))) + stepCount;
+                i2 = (((i)%stepSize)*(stepSize)) + stepCount;
+            }else{
+                i1 = i;
+                i2 = i;
+            }
+            temp[i] = (data[i1*2] + data[i2*2 + 1])/s;
+            temp[i + k] = (data[i1*2] - data[i2*2 + 1])/s;
         }
         for(int i = 0; i < k * 2; i++){
             data[i] = temp[i];
         }
     }
-
+    delete[](temp);
 }
 
-void  pgm_dwt2D(PGM* img, int levels){
+void  pgm_disc_wave_2d(PGM* img, int levels){
     // Apply 1d dwt to the columns
-    for(int i = 0; i < img->cols; i++){
-        dwt1d((img->data + (i * img->rows)), img->rows, levels);
-    }
+    int length = img->rows * img->cols;
+    // disc_wave_1d(img->data, length, levels, img->rows);
 
     // Apply 1d dwt to the rows
-    for(int i = 0; i < img->rows; i++){
-        dwt1d((img->data + (i * img->cols)), img->cols, levels);
-    }
+    disc_wave_1d(img->data, length, levels, 0);
 }

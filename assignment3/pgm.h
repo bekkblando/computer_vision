@@ -17,6 +17,6 @@ void     pgm_write(PGM *img, const char *file);
 PGM     *pgm_conv(PGM *img, FLTR* filter);
 void     pgm_normalize(PGM *img);
 PGM     *contour_img(PGM* x, PGM* y);
-void    pgm_idwt2D(PGM*, int);
-void    pgm_dwt2D(PGM*, int);
+void    pgm_inverse_disc_wave_2d(PGM*, int);
+void    pgm_disc_wave_2d(PGM*, int);
 #endif
