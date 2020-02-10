@@ -19,4 +19,6 @@ void     pgm_normalize(PGM *img);
 PGM     *contour_img(PGM* x, PGM* y);
 void    pgm_inverse_disc_wave_2d(PGM*, int);
 void    pgm_disc_wave_2d(PGM*, int);
+PGM     *pgm_copy(PGM*);
+
 #endif

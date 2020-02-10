@@ -79,13 +79,31 @@ void pgm_write(PGM *img, const char *file){
 
     // Write the data pixels, row, column, file
     fwrite(pixels, img->rows, img->cols, pgm);
-    // delete[] pixels;
+    delete[] pixels;
     fclose(pgm);
 }
 
 void pgm_free(PGM* pgm){
     if(pgm->data)
         delete[] pgm->data;
+    delete(pgm);
+}
+
+PGM* pgm_copy(PGM* pgm){
+    PGM *image = new PGM();
+    int length = pgm->rows * pgm->cols;
+    double* pixels = new double[length];
+    for(int i = 0; i < length; i++){
+        pixels[i] = pgm->data[i]; 
+    }
+
+    image->name = pgm->name;
+    image->magic = pgm->magic;
+    image->cols = pgm->cols;
+    image->rows = pgm->rows;
+    image->maxc = pgm->maxc;
+    image->data = pixels;
+    return(image);
 }
 
 double* createOpMem(double* data, int row, int col, int index){
@@ -187,7 +205,7 @@ void disc_wave_1d(double* data, int length, int levels){
             data[i] = temp[i];
         }
     }
-    // delete[](temp);
+    delete[](temp);
 }
 
 void inverse_disc_wave_1d(double* data, int length, int levels){
@@ -195,8 +213,6 @@ void inverse_disc_wave_1d(double* data, int length, int levels){
     double* temp = new double[length];
     int k = pow(2, ((int)(floor(log2(length)))))*pow(.5, levels + 1);
     for(; k < length; k = k*2){
-        cout << "Here is k: " << k << endl;
-        // cout << "This is running right?" << endl;
         for(int i = 0; i < k; i++){
             temp[i*2] = (data[i] + data[i + k])/s;
             temp[i*2 + 1] = (data[i] - data[i + k])/s;
@@ -205,23 +221,25 @@ void inverse_disc_wave_1d(double* data, int length, int levels){
             data[i] = temp[i];
         }
     }
-    // delete[](temp);
+    delete[](temp);
 }
 
 void  pgm_disc_wave_2d(PGM* img, int levels){
     // Apply 1d dwt to the columns
     double *tempCol = new double[img->rows];
     for(int col = 0; col < img->cols; col++){
-        for(int i = 0, j = col; i <= img->rows; i++, j += img->rows){
+        for(int i = 0, j = col; i < img->rows; i++, j += img->rows){
             tempCol[i] = img->data[j];
 
         }
         
         disc_wave_1d(tempCol, img->rows, levels);
-        for(int i = 0, j = col; i <= img->rows; i++, j += img->rows){
+        for(int i = 0, j = col; i < img->rows; i++, j += img->rows){
             img->data[j] = tempCol[i];
         }
     }
+    delete[](tempCol);
+
 
     // Apply 1d dwt to the rows
     for(int i = 0; i < img->rows; i++){
@@ -238,14 +256,15 @@ void  pgm_inverse_disc_wave_2d(PGM* img, int levels){
     // Apply 1d dwt to the columns
     double *tempCol = new double[img->rows];
     for(int col = 0; col < img->cols; col++){
-        for(int i = 0, j = col; i <= img->rows; i++, j += img->rows){
+        for(int i = 0, j = col; i < img->rows; i++, j += img->rows){
             tempCol[i] = img->data[j];
 
         }
         
         inverse_disc_wave_1d(tempCol, img->rows, levels);
-        for(int i = 0, j = col; i <= img->rows; i++, j += img->rows){
+        for(int i = 0, j = col; i < img->rows; i++, j += img->rows){
             img->data[j] = tempCol[i];
         }
     }
+    delete[](tempCol);
 }
