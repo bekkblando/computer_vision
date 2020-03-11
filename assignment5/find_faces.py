@@ -6,6 +6,7 @@ import sys
 import os
 import math
 import time
+import functools
 
 class Face():
     
@@ -27,36 +28,66 @@ class Face():
         self.mouth_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + self.mouthCascadeName)
         self.rect = rect
         (x,y,w,h) = rect
-        self.frame = frame
         self.filtered_grey = gray[y: y + h, x: x + w]
-        self.color = frame[y: y + h, x: x + w]
         self.updated = time.time()
         self.index = index
         
     def get_left_eyes(self):
-        return self.left_eye_cascade.detectMultiScale(self.filtered_grey, 1.1, minNeighbors=35)
+        return self.left_eye_cascade.detectMultiScale(self.filtered_grey)
     
     def get_right_eyes(self):
-        return self.right_eye_cascade.detectMultiScale(self.filtered_grey, 1.1, minNeighbors=35)
+        return self.right_eye_cascade.detectMultiScale(self.filtered_grey)
     
     def get_mouths(self):
         return self.mouth_cascade.detectMultiScale(self.filtered_grey, 1.1, minNeighbors=35, minSize=(25, 25))
     
     def get_noses(self):
-        return self.nose_cascade.detectMultiScale(self.filtered_grey, 1.1, minNeighbors=35)
+        return self.nose_cascade.detectMultiScale(self.filtered_grey, 1.1)
+    
+    def filter_left_eyes(self, eyes, x, y, w, h):
+        # Remove if not less than the midpoint
+        # Get closest to 2/3 from the bottom
+        new_eyes = list(filter(lambda eye: eye[0] < (w/2), eyes))
+        if(len(new_eyes) == 0):
+            # print("Couldn't find any left eyes")
+            return []
+        return([functools.reduce(lambda new_eye, closest_eye : new_eye if abs(1/3 - closest_eye[1]/h) > abs(1/3 - new_eye[1]/h) else closest_eye, new_eyes)])
+         
+        
+    def filter_right_eyes(self, eyes, x, y, w, h):
+        # Remove if not less than the midpoint
+        # Get closest to 2/3 from the bottom
+        new_eyes = list(filter(lambda eye: eye[0] > (w/2), eyes))
+        if(len(new_eyes) == 0):
+            # print("Couldn't find any right eyes")
+            return []
+        return([functools.reduce(lambda new_eye, closest_eye : new_eye if abs(1/3 - closest_eye[1]/h) > abs(1/3 - new_eye[1]/h) else closest_eye, new_eyes)])
+         
+        
+    def filter_mouths(self, mouths, x, y, w, h):
+        # Get the cloest mouth to 1/5 from bottom
+        if(len(mouths) == 0):
+            # print("Couldn't find any mouths")
+            return []
+        return [functools.reduce(lambda new_mouth, closest_mouth : new_mouth if abs(4/5 - closest_mouth[1]/h) > abs(4/5 - new_mouth[1]/h) else closest_mouth, mouths)]
+    
+    def filter_noses(self, noses, x, y, w, h): 
+        if(len(noses) == 0):
+            # print("Couldn't find any mouths")
+            return []
+        return [functools.reduce(lambda new_nose, closest_nose : new_nose if abs(2/3 - closest_nose[1]/h) > abs(2/3 - new_nose[1]/h) else closest_nose, noses)]
     
     def update(self, rect, gray):
         # Update Time
         self.rect = rect
         self.gray = gray
-        self.frame = frame
         self.updated = time.time()
 
     def draw_cascades(self, items, frame, label):
         for (x,y,w,h) in items:
             # Change the thickness of the line to give a fade effect
-            cv2.rectangle(frame,(x, y),(x + w, y + h),(0,255,0), math.floor(3 - self.decay()))
-            cv2.putText(frame,f'{label}',(x + x, y + y), 1, 1, (0, 255, 0), 1)
+            cv2.rectangle(frame,(x, y),(x + w, y + h),(0,255,0), math.floor(10.5 - self.decay()))
+            cv2.putText(frame,f'{label}',(x, y), 1, 1, (0, 255, 0), 1)
 
     def decay(self):
         return time.time() - self.updated
@@ -70,19 +101,19 @@ class Face():
         self.draw_cascades([self.rect], frame, f'Face {self.index}')
         
         # Draw a rectangle around the left eyes
-        self.draw_cascades(self.get_left_eyes(), self.color, "Left Eye")
+        self.draw_cascades(self.filter_left_eyes(self.get_left_eyes(), x, y, w, h), self.color, "Left Eye")
 
 
         # Draw a rectangle around the right eyes
-        self.draw_cascades(self.get_right_eyes(), self.color, "Right Eye")
+        self.draw_cascades(self.filter_right_eyes(self.get_right_eyes(), x, y, w, h), self.color, "Right Eye")
 
 
         # Draw a rectangle around the mouth
-        self.draw_cascades(self.get_mouths(), self.color, "Mouth")
+        self.draw_cascades(self.filter_mouths(self.get_mouths(), x, y, w, h), self.color, "Mouth")
 
 
         # Draw a rectangle around the nose
-        self.draw_cascades(self.get_noses(), self.color, "Nose")
+        self.draw_cascades(self.filter_noses(self.get_noses(), x, y, w, h), self.color, "Nose")
 
 
 class Faces():
@@ -93,7 +124,7 @@ class Faces():
     
     
     def get_faces(self, frame):
-        return self.face_cascade.detectMultiScale(frame, 1.1)
+        return self.face_cascade.detectMultiScale(frame)
     
     
     def get_distance(self, x1, y1, x2, y2):
@@ -101,8 +132,8 @@ class Faces():
     
     
     def read_clean_view(self, gray, frame):
-        self.same_for = 300
-        self.decayed = 3
+        self.same_for = 100
+        self.decayed = 10
         
         # Get those rectangles around those faces
         
@@ -121,7 +152,6 @@ class Faces():
             if(new):
                 face = Face(new_face, gray, len(self.faces))
                 self.faces.append(face)
-                face.draw(frame)
         
         for face in self.faces:
             face.draw(frame)
