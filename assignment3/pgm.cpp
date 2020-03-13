@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <new> 
 #include <iterator>
+#include <cstring>
 using namespace std;
 
 PGM *pgm_read(char *file_name){
