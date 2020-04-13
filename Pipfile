@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 imutils = "*"
 pyimagesearch = "*"
+scipy = "*"
 
 [requires]
 python_version = "3.7"

@@ -44,7 +44,7 @@ def get_frames(cap):
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
-            print("Can't receive frame (stream end?). Exiting ...")
+            print("Processed. Now rendering")
             break
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         parameters =  aruco.DetectorParameters_create()
